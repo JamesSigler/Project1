@@ -1,0 +1,502 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8" />
+    <title>Smart Mirror</title>
+
+
+
+    <!--Importing Everything-->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/gridstack.js/0.4.0/gridstack.min.css" />
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.0/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://bootswatch.com/3/paper/bootstrap.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.0/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gridstack.js/0.4.0/gridstack.all.js"></script>
+    
+    <!--
+        
+        NOTE!!!
+        
+        Normal convention would be for the CSS and all of the JS to be in their own respective files,
+        however we decided with no good way to do any source control or work in the same file system
+        that doing it all in the index file would save us alot of headache
+
+    -->
+    
+    <style>
+
+        /**ALL the global CSS is in this tag*/
+
+
+        #container {
+            margin: 0px;
+            height: 900px;
+        }
+
+        #videoElement {
+            width: 100%;
+            height: 100%;
+            background-color: #666;
+            z-index: 1;
+            transform: rotateY(180deg);
+            -webkit-transform: rotateY(180deg);
+        }
+
+        #overlay {
+            position: fixed; /* Sit on top of the page content */
+            display: block; /* Hidden by default */
+            width: 100%; /* Full width (cover the whole page) */
+            height: 100%; /* Full height (cover the whole page) */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0); /* Black background with opacity */
+            z-index: 2; /* Specify a stack order in case you're using a different order for other elements */
+            cursor: pointer; /* Add a pointer on hover */
+        }
+        #panel-body{
+            padding:0px;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 28px;
+            font-size: 12px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        #iframe {
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+
+
+<body>
+
+
+
+    <script type="text/javascript">
+        //All Jquery in this tag
+
+
+        $(function () {
+            var options = { cellHeight: 80, verticalMargin: 10, float: true, width: 12, animate: true, height: 10};
+            $('.grid-stack').gridstack(options);
+
+        });
+    </script>
+
+
+
+    <script>
+
+        //all of the angular code resides in this tag
+
+
+
+        //module
+        var app = angular.module("myApp", []);
+
+
+        //controllers
+        app.controller('ctrl1', function ($scope) {
+
+            /**Below is all of the code for the filters, there will be another comment marking where the angular code for the hiding resides  */
+
+            //functions attached to the scope
+            $scope.changeFilter = changeFilter;
+            $scope.noFilter = noFilter;
+
+
+            //scope variables
+            $scope.currentFilter = 0;
+            $scope.currentFilterName = "No Filter"
+            
+
+
+            //list of all the filters, with the style the style part and the name 
+            $scope.listOfFilters = [
+                {
+                    name: "No Filter",
+                    style: "filter: null"
+                },
+                {
+                    name: "Gray Scale",
+                    style: "filter: grayscale(1);"
+                },
+                {
+                    name: "Sepia",
+                    style: "filter: sepia(1);"
+                },
+                {
+                    name: "Contrast",
+                    style: "filter: contrast(3);"
+                },
+                {
+                    name: "Hue Rotation",
+                    style: "filter: hue-rotate(90deg);"
+                },
+                {
+                    name: "Blur",
+                    style: "filter: blur(5px);"
+                },
+                {
+                    name: "Tint",
+                    style: "filter: sepia(1) hue-rotate(200deg);"
+                },
+                {
+                    name: "Invert",
+                    style: "filter: invert(.8);"
+                },
+                {
+                    name: "Opacity",
+                    style: "filter: opacity(.5);"
+                },
+                {
+                    name: "Sunny Day",
+                    style: "filter: brightness(2);"
+                }
+            ];
+            $scope.nextFilter = $scope.listOfFilters[1].name;
+            $scope.prevFilter = $scope.listOfFilters[$scope.listOfFilters.length - 1].name;
+
+            
+            /**This function either increments or decrements based on the dir parm
+             * it acts as a loop to go forward or backwards to the next selected 
+             * filter
+             * 
+             * then sets the next and previous filters to their correct spot
+             * 
+             * @param dir
+             */
+            function changeFilter(dir) {    
+
+                //inc or dec the current filter
+                $scope.currentFilter += dir;
+
+                //checking if the current filter has gone off either end of the listOfFilters list
+                if ($scope.currentFilter > $scope.listOfFilters.length) {
+                    $scope.currentFilter = 0;
+                }
+                else {
+                    if ($scope.currentFilter < 0) {
+                        $scope.currentFilter = $scope.listOfFilters.length - 1;
+                    }
+                }
+
+
+                //changes the filter of the "videoElement" tag
+                document.getElementById("videoElement").style = $scope.listOfFilters[$scope.currentFilter].style;
+
+                //sets current filter name 
+                $scope.currentFilterName = $scope.listOfFilters[$scope.currentFilter].name;
+
+                //these ifs are to control for the beginning and end of the list 
+                if ($scope.currentFilter + 1 >= $scope.listOfFilters.length) {
+                    $scope.nextFilter = $scope.listOfFilters[0].name;
+                }
+                else {
+                    $scope.nextFilter = $scope.listOfFilters[$scope.currentFilter + 1].name;
+                }
+                if ($scope.currentFilter - 1 < 0) {
+                    $scope.prevFilter = $scope.listOfFilters[$scope.listOfFilters.length - 1].name;
+                }
+                else {
+                    $scope.prevFilter = $scope.listOfFilters[$scope.currentFilter - 1].name;
+                }
+            }
+
+
+            //function to return filters to their origional state
+            function noFilter() {
+
+                //resets the filter to the no filter state
+                document.getElementById("videoElement").style = $scope.listOfFilters[0].style;
+
+                $scope.currentFilter = 0;
+                $scope.currentFilterName = "No Filter"
+
+                $scope.nextFilter = $scope.listOfFilters[1].name;
+                $scope.prevFilter = $scope.listOfFilters[$scope.listOfFilters.length-1].name;
+
+            }
+
+
+            /*All the parts that pertain to hiding are below this */
+
+
+
+            //all functions attached to the scope
+            $scope.toggleAll = toggleAll;
+            $scope.toggleWeather = toggleWeather;
+            $scope.toggleCalender = toggleCalender;
+            $scope.toggleNews = toggleNews;
+            $scope.toggleSpotify = toggleSpotify;
+            $scope.toggleTimer = toggleTimer;
+            $scope.toggleFilter = toggleFilter;
+
+
+            //all scope varibles 
+            $scope.show = {};
+            $scope.show.all = true;
+            $scope.show.weather = true;
+            $scope.show.calender = true;
+            $scope.show.news = true;
+            $scope.show.spotify = true;
+            $scope.show.timer = true;
+            $scope.show.filter = true;
+
+
+
+
+            //all functions
+
+            //hides or shows all 
+            function toggleAll() {
+                $scope.show.all = !$scope.show.all;
+                if ($scope.show.all) {
+                    $scope.show.weather = true;
+                    $scope.show.calender = true;
+                    $scope.show.news = true;
+                    $scope.show.spotify = true;
+                    $scope.show.timer = true;
+                    $scope.show.filter = true;
+                }
+                else {
+                    $scope.show.weather = false;
+                    $scope.show.calender = false;
+                    $scope.show.news = false;
+                    $scope.show.spotify = false;
+                    $scope.show.timer = false;
+                    $scope.show.filter = false;
+                }
+
+            }
+
+
+            //each of these functions toggles the show attribute for each specfic grid part
+            function toggleWeather() {
+                $scope.show.weather = !$scope.show.weather;
+                checkSelectAll();
+            }
+            function toggleCalender() {
+                $scope.show.calender = !$scope.show.calender;
+                checkSelectAll();
+            }
+            function toggleNews() {
+                $scope.show.news = !$scope.show.news;
+                checkSelectAll();
+            }
+            function toggleSpotify() {
+                $scope.show.spotify = !$scope.show.spotify;
+                checkSelectAll();
+            }
+            function toggleTimer() {
+                $scope.show.timer = !$scope.show.timer;
+                checkSelectAll();
+            }
+            function toggleFilter() {
+                $scope.show.filter = !$scope.show.filter;
+                checkSelectAll();
+            }
+
+
+            /*checks if all of the grids are checked or not, if so then it flids the show are hide all, 
+            because it should display show all if all are hidden, even if all got hidden because of their 
+            individual buttons */
+            function checkSelectAll() {
+                if ($scope.show.spotify & $scope.show.news & $scope.show.calender & $scope.show.weather & $scope.show.timer & $scope.show.filter) {
+                    $scope.show.all = true;
+                }
+                else {
+                    if (!$scope.show.spotify & !$scope.show.news & !$scope.show.calender & !$scope.show.weather & !$scope.show.timer & !$scope.show.filter) {
+                        $scope.show.all = false;
+                    }
+                }
+            }
+            
+        });
+
+
+        //filters
+
+        //filter for the hide/show buttons
+        app.filter('toggleButtonFilter', function () {
+            return function (x) {
+                if (x) {
+                    return 'Hide'
+                }
+                else {
+                    return 'Show';
+                }
+            }
+        });
+    </script>
+
+
+
+    <!--This div will overlay the camera, so everything appears on top of the camera -->
+    <div id="overlay">
+        <div id="sketch-holder">
+            <div id="overtext">
+
+                <!--starts the area controlled by angular-->
+                <div ng-app="myApp">
+                    <!--starts the area controlled by ctrl1-->
+                    <div ng-controller="ctrl1">
+                        <!--These two divs are the container for the grid stack items-->
+                        <div class="container" style="width:100%;padding:0px;height:500px;">
+                            <div class="grid-stack" style="width:100%;height:500px;">
+
+                                <!--This holds all of the info for the weather grid item-->
+                                <div ng-show="show.weather" class="grid-stack-item" data-gs-x="100" data-gs-y="1" data-gs-width="3" data-gs-height="2" data-gs-min-width="3" data-gs-max-height="2">
+                                    <div class="grid-stack-item-content panel panel-weather" style="background-color: transparent;">
+                                        <div class="panel-heading" style="background-color: #bd0909;">
+                                            <h3 class="panel-title"></h3>
+                                        </div>
+                                        <div>
+                                            <div style="width: 100%;">
+                                                <iframe style="display: block;" src="https://cdnres.willyweather.com/widget/loadView.html?id=116248" width="100%" height="100%" frameborder="0" scrolling="no"></iframe>
+                                                <a style="position: relative;margin: -20px 0 0 0;text-indent: -9999em;height: 20px;z-index: 1;display: block" href="https://www.willyweather.com/tx/lubbock-county/lubbock.html" rel="nofollow">Lubbock TX forecast</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <!--This holds all of the info for the spotify grid item-->
+                                <div ng-show="show.spotify" class="grid-stack-item" data-gs-x="0" data-gs-y="6" data-gs-width="3" data-gs-height="2" style="background-color: transparent;">
+                                    <div class="grid-stack-item-content panel panel-spotify" style="background-color: transparent;">
+                                        <div class="panel-heading" style="background-color: #403d69;">
+                                            <h3 class="panel-title"></h3>
+                                        </div>
+                                        <div>
+                                            <iframe src="https://open.spotify.com/embed/artist/3CjlHNtplJyTf9npxaPl5w" width="100%" height="400" frameborder="0" allowtransparency="true" allow="encrypted-media" frameborder="0"></iframe>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!--This holds all of the info for the news grid item-->
+                                <div ng-show="show.news" class="grid-stack-item" data-gs-x="0" data-gs-y="2" data-gs-width="3" data-gs-height="4" data-gs-min-width="3" data-gs-min-height="2" data-gs-max-height="4" data-gs-max-width="5" style="background-color: transparent;">
+                                    <div class="grid-stack-item-content panel panel-news" style="background-color: transparent;">
+                                        <div class="panel-heading" style="background-color: #390470;">
+                                            <h3 class="panel-title"></h3>
+                                        </div>
+                                        <div>
+                                            <iframe src="https://feed.mikle.com/widget/v2/119350/" height="350" width="100%" class="fw-iframe" scrolling="no" frameborder="0"></iframe>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <!--This holds all of the info for the calender grid item-->
+                                <div ng-show="show.calender" class="grid-stack-item" data-gs-x="0" data-gs-y="0" data-gs-width="4" data-gs-height="2" data-gs-min-width="3" data-gs-min-height="1" data-gs-max-height="6" data-gs-max-width="9" style="background-color: transparent;">
+                                    <div class="grid-stack-item-content panel panel-news" style="background-color: transparent;">
+                                        <div class="panel-heading" style="background-color: #616361;">
+                                            <h3 class="panel-title"></h3>
+                                        </div>
+                                        <div>
+                                            <iframe src="https://calendar.google.com/calendar/embed?src=brian9813%40gmail.com&ctz=America%2FChicago&mode=AGENDA" style="border: 0" width="8650" height="600" frameborder="0" scrolling="no"></iframe>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <!--This holds all of the info for the timer grid item-->
+                                <div ng-show="show.timer" class="grid-stack-item" data-gs-x="100" data-gs-y="0" data-gs-width="3" data-gs-height="1" data-gs-min-width="3">
+                                    <div class="grid-stack-item-content panel panel-time" style="background-color: #3b333d;">
+                                        <div>
+                                            <iframe src="http://free.timeanddate.com/clock/i70byf6p/n1921/fn14/fs26/fc9ff/tc000/bat1/bacfff/pa3/tt0/tw1/th2/ta1/tb4" frameborder="0" width="100%" height="70"></iframe>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <!--These below are both of the button groups-->
+                                <!--This holds all of the info for the filter button group grid item-->
+                                <div ng-show="show.filter" class="grid-stack-item" data-gs-x="5" data-gs-y="0" data-gs-width="3" data-gs-height="1" style="background-color: transparent;" data-gs-min-width="2">
+                                    <div class="grid-stack-item-content panel panel-news" style="background-color: transparent;">
+                                        <div class="panel-heading" style="background-color: #3a8c3b;">
+                                            <h3 class="panel-title" style="color:white;text-align:center;height:12px;"> The Current Filter is: {{currentFilterName}}</h3>
+                                        </div>
+                                        <div style="background-color: transparent;">
+                                            <div class="btn-group" style="width:100%;">
+                                                <button type="button" class="btn" ng-click="changeFilter(-1)" style="width:35%;text-align: center;">{{prevFilter}}</button>
+                                                <button type="button" class="btn" ng-click="noFilter()" style="width:30%;text-align: center;">No Filter</button>
+                                                <button type="button" class="btn" ng-click="changeFilter(1)" style="width:35%;text-align: center;">{{nextFilter}}</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <!--This holds all of the info for the show/hide button group grid item-->
+                                <div class="grid-stack-item" data-gs-x="100" data-gs-y="6" data-gs-width="2" data-gs-height="4" style="background-color: transparent;" data-gs-min-width="2">
+                                    <div class="grid-stack-item-content panel panel-news" style="background-color: transparent;">
+                                        <div class="panel-heading" style="background-color: #3a8c3b;">
+                                            <h3 class="panel-title"></h3>
+                                        </div>
+                                        <div style="background-color: transparent;">
+                                            <div class="btn-group-vertical" style="width:100%;">
+                                                <button type="button" class="btn" ng-click="toggleAll()">{{show.all | toggleButtonFilter}} All</button>
+                                                <button type="button" class="btn" ng-click="toggleCalender()">{{show.calender | toggleButtonFilter}} Calender</button>
+                                                <button type="button" class="btn" ng-click="toggleFilter()">{{show.filter | toggleButtonFilter}} Filters</button>
+                                                <button type="button" class="btn" ng-click="toggleTimer()">{{show.timer | toggleButtonFilter}} Clock</button>
+                                                <button type="button" class="btn" ng-click="toggleNews()">{{show.news | toggleButtonFilter}} News</button>
+                                                <button type="button" class="btn" ng-click="toggleWeather()">{{show.weather | toggleButtonFilter}} Weather</button>
+                                                <button type="button" class="btn" ng-click="toggleSpotify()">{{show.spotify | toggleButtonFilter}} Spotify</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--This is all of the video stuff-->
+    <video autoplay="true" id="videoElement">
+        <script>
+
+            //JS for all of the video stuff
+            var video = document.querySelector("#videoElement");
+
+            if (navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function (stream) {
+                        video.srcObject = stream;
+                    })
+                    .catch(function (err0r) {
+                        console.log("Something went wrong!");
+                    });
+            }
+        </script>
+    </video>
+</body>
+</html>
+
+
+
